@@ -1,0 +1,136 @@
+SELECT a.NumeroSerie_Remision,a.co_materia, impor.nombre importador,
+emp.descripcion empaque, talla.descripcion talla,
+sum(detalle.cantidad /master.cantidad) cant_master,
+ if(a.co_tipo in (12,64,66, 65), c.nu_lote, if(a.co_tipo = 37, concat('V', a.co_guia), if(a.co_tipo = 39, concat('R', a.co_guia), ''))) lote,  
+ cajas , masters,  lbs,
+  cajaspt,  masterspt,  lbspt 
+ FROM ( 
+		 SELECT a.NumeroSerie_Remision, a.co_Tipo, a.co_guia, a.co_materia, a.descripcion,
+		 sum(cajas) cajas, sum(masters) masters, sum(lbs) lbs,
+		 sum(cajaspt) cajaspt, sum(masterspt) masterspt, sum(lbspt) lbspt
+		 FROM (
+					 SELECT a.NumeroSerie_Remision,a.co_tipo, a.co_guia, b.co_materia, b.descripcion, 
+					 sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1)) cajas, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) / m.cantidad),2) masters, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) * em.cantidad),2) lbs,
+					 0 cajaspt, 0 masterspt, 0 lbspt 
+					 
+					 FROM a20810 a FORCE INDEX(emision), a20815 b, a20100 c, a20t2 em, a20t8 m 
+					 WHERE a.co_division = b.co_division And a.co_inventario = b.co_inventario 
+					 And a.tip_min = b.tip_min And a.num_doc = b.num_doc
+					 and a.co_division = 1 and a.co_inventario = 1
+					 and a.NumeroSerie_Remision = 'R2207409'
+
+					 and SUBSTR(NumeroSerie_Remision,1,1) in ('R','V')
+					 -- and a.emision>='2022-01-01'
+					 and a.anulada = 0 
+					 and b.co_materia = c.co_materia and c.co_empaque = em.co_empaque
+					 and c.co_master = m.co_master 
+					 GROUP BY a.co_tipo, a.co_guia, b.co_materia 
+					 
+					 UNION ALL
+					 SELECT a.NumeroSerie_Remision,b.co_tipo_original as co_tipo, a.co_guia, b.co_materia, b.descripcion, 
+					 0 cajas, 0 masters, 0 lbs,
+					 sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1)) cajaspt, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) / m.cantidad),2) masterspt, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) * em.cantidad),2) lbspt 
+					 FROM a20816 a FORCE INDEX(emision) , a20817 b, a20100 c, a20t2 em, a20t8 m 
+					 WHERE a.co_division = b.co_division And a.co_inventario = b.co_inventario 
+					 And a.tip_min = b.tip_min And a.num_doc = b.num_doc
+					 	and a.NumeroSerie_Remision = 'R2207409'
+
+		-- 			 and a.emision>='2022-01-01'
+					 and a.co_tipo in (22, 59, 97, 108, 114, 120)
+					 and a.anulada = 0 
+					 and b.co_materia = c.co_materia and c.co_empaque = em.co_empaque
+					 and c.co_master = m.co_master 
+					 and a.NumeroSerie_Remision <>''
+					  and SUBSTR(NumeroSerie_Remision,1,1) in ('R','V')
+					 GROUP BY b.co_tipo_original, a.co_guia, b.co_materia
+					 
+				
+
+		 ) a
+		 GROUP BY a.co_tipo, a.co_guia, a.co_materia
+
+ ) a
+  join a20482d detalle on concat(detalle.tipo,detalle.co_lote)= a.NumeroSerie_Remision
+ left join a20482 cabecera FORCE INDEX (pkfecha,pkaprobado) on cabecera.tipo=detalle.tipo and cabecera.co_lote=detalle.co_lote
+LEFT JOIN a20200 b ON a.co_tipo in (12,64,66,65) and a.co_guia = b.co_guia 
+ LEFT JOIN a20250 c ON b.co_lote = c.co_lote
+ left join a20100 item on item.co_materia=a.co_materia
+ LEFT JOIN a20t1 impor on impor.co_importador=item.co_importador
+ LEFT JOIN a20t2 emp on emp.co_empaque=item.co_empaque
+ LEFT JOIN a20t3 talla on talla.co_talla=item.co_talla
+ left join a20t8 master on master.co_master=item.co_master
+
+-- where cabecera.aprobado=0
+ GROUP BY a.co_materia,a.co_guia
+
+ UNION ALL
+ 
+ SELECT a.NumeroSerie_Remision,a.co_materia, impor.nombre importador,
+emp.descripcion empaque, talla.descripcion talla,
+sum(detalle.cantidad /master.cantidad) cant_master,
+ if(a.co_tipo in (12,64,66, 65), c.nu_lote, if(a.co_tipo = 37, concat('V', a.co_guia), if(a.co_tipo = 39, concat('R', a.co_guia), ''))) lote,   
+ cajas , masters,  lbs,
+  cajaspt,  masterspt,  lbspt 
+ FROM ( 
+		 SELECT a.NumeroSerie_Remision, a.co_Tipo, a.co_guia, a.co_materia, a.descripcion,
+		 sum(cajas) cajas, sum(masters) masters, sum(lbs) lbs,
+		 sum(cajaspt) cajaspt, sum(masterspt) masterspt, sum(lbspt) lbspt
+		 FROM (
+					
+					 
+					 	 SELECT a.NumeroSerie_Remision,a.co_tipo, a.co_guia, b.co_materia, b.descripcion, 
+					 sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1)) cajas, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) / m.cantidad),2) masters, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) * em.cantidad),2) lbs,
+					 0 cajaspt, 0 masterspt, 0 lbspt 
+					 
+					 FROM a20810 a FORCE INDEX(emision), a20815 b, a20100 c, a20t2 em, a20t8 m 
+					 WHERE a.co_division = b.co_division And a.co_inventario = b.co_inventario 
+					 And a.tip_min = b.tip_min And a.num_doc = b.num_doc
+					 and a.co_division = 1 and a.co_inventario = 1
+					 and a.NumeroSerie_Remision = 'R2207409'
+					 and NumeroSerie_Remision REGEXP '^[0-9]+'
+				-- 	 and a.emision>='2022-01-01'
+					 and a.anulada = 0 
+					 and b.co_materia = c.co_materia and c.co_empaque = em.co_empaque
+					 and c.co_master = m.co_master 
+					 GROUP BY a.co_tipo, a.co_guia, b.co_materia 
+					 UNION ALL
+				
+					 SELECT a.NumeroSerie_Remision,b.co_tipo_original as co_tipo, a.co_guia, b.co_materia, b.descripcion, 
+					 0 cajas, 0 masters, 0 lbs,
+					 sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1)) cajaspt, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) / m.cantidad),2) masterspt, 
+					 round(sum(if(a.tip_min = 'I', b.cantidad, b.cantidad * -1) * em.cantidad),2) lbspt 
+		
+					 FROM a20816 a FORCE INDEX(emision) , a20817 b, a20100 c, a20t2 em, a20t8 m 
+					 WHERE a.co_division = b.co_division And a.co_inventario = b.co_inventario 
+					 And a.tip_min = b.tip_min And a.num_doc = b.num_doc
+					 and a.NumeroSerie_Remision = 'R2207409'
+	-- 				 and a.emision>='2022-01-01'
+					 and a.co_tipo in (22, 59, 97, 108, 114, 120)
+					 and a.anulada = 0 
+					 and b.co_materia = c.co_materia and c.co_empaque = em.co_empaque
+					 and c.co_master = m.co_master 
+					 and a.NumeroSerie_Remision <>''
+					 and NumeroSerie_Remision REGEXP '^[0-9]+'
+					 GROUP BY b.co_tipo_original, a.co_guia, b.co_materia
+		 ) a
+		 GROUP BY a.co_tipo, a.co_guia, a.co_materia
+ ) a
+  join a20482d detalle on detalle.tipo='F' and detalle.co_lote=a.NumeroSerie_Remision
+ left join a20482 cabecera FORCE INDEX (pkfecha,pkaprobado) on cabecera.tipo=detalle.tipo and cabecera.co_lote=detalle.co_lote
+LEFT JOIN a20200 b ON a.co_tipo in (12,64,66,65) and a.co_guia = b.co_guia 
+ LEFT JOIN a20250 c ON b.co_lote = c.co_lote
+ left join a20100 item on item.co_materia=a.co_materia
+ LEFT JOIN a20t1 impor on impor.co_importador=item.co_importador
+ LEFT JOIN a20t2 emp on emp.co_empaque=item.co_empaque
+ LEFT JOIN a20t3 talla on talla.co_talla=item.co_talla
+ left join a20t8 master on master.co_master=item.co_master
+ -- where cabecera.aprobado=0
+  GROUP BY a.co_materia,a.co_guia
+ order by NumeroSerie_Remision,co_materia,lote asc;
